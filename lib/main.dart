@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 void main() => runApp(const CalculatorApp());
 
+/// Part I: Core calculator
+/// - Number buttons 0-9
+/// - Arithmetic operators: +, -, *, /
+/// - Display area showing current input and result
+/// - Two operands + one operator calculation
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
 
@@ -11,11 +16,430 @@ class CalculatorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Calculator',
       theme: ThemeData(useMaterial3: true),
-      home: const Scaffold(
-        body: Center(
+      home: const CalculatorScreen(),
+    );
+  }
+}
+
+class CalculatorScreen extends StatefulWidget {
+  const CalculatorScreen({super.key});
+
+  @override
+  State<CalculatorScreen> createState() => _CalculatorScreenState();
+}
+
+class _CalculatorScreenState extends State<CalculatorScreen> {
+  // =========================
+  // Calculator state
+  // =========================
+  String displayText = '0';    // Current value shown on screen
+  double? firstOperand;         // Stored first number
+  String? selectedOperator;     // Pending operator: +, -, *, /
+  bool startNewNumber = true;   // Whether next digit starts a fresh number
+
+  // -------------------------
+  // Helpers
+  // -------------------------
+
+  /// Parse the display string into a double
+  double? _parseDisplay() {
+    return double.tryParse(displayText);
+  }
+
+  /// Format a double for display, stripping unnecessary trailing zeros
+  String _formatNumber(double value) {
+    final asInt = value.toInt();
+    if ((value - asInt).abs() < 1e-10) return asInt.toString();
+    String out = value.toStringAsFixed(10);
+    out = out.replaceFirst(RegExp(r'\.?0+$'), '');
+    return out;
+  }
+
+  // =========================
+  // Part I: Input handlers
+  // =========================
+
+  /// Append a digit to the display
+  void pressDigit(String digit) {
+    setState(() {
+      if (startNewNumber || displayText == '0') {
+        displayText = digit;
+        startNewNumber = false;
+      } else {
+        if (displayText.length < 14) displayText += digit;
+      }
+    });
+  }
+
+  /// Append a decimal point to the display
+  void pressDot() {
+    setState(() {
+      if (startNewNumber) {
+        displayText = '0.';
+        startNewNumber = false;
+        return;
+      }
+      if (!displayText.contains('.')) displayText += '.';
+    });
+  }
+
+  /// Store first operand and selected operator; compute chain if needed
+  void pressOperator(String op) {
+    final currentNumber = _parseDisplay();
+    if (currentNumber == null) return;
+
+    setState(() {
+      // If an operation is already pending, compute intermediate result
+      if (firstOperand != null && selectedOperator != null && !startNewNumber) {
+        final result = _compute(firstOperand!, selectedOperator!, currentNumber);
+        if (result != null) {
+          firstOperand = result;
+          displayText = _formatNumber(result);
+        }
+      } else {
+        firstOperand = currentNumber;
+      }
+      selectedOperator = op;
+      startNewNumber = true;
+    });
+  }
+
+  /// Evaluate the pending operation and show the result
+  void pressEquals() {
+    final secondOperand = _parseDisplay();
+    if (firstOperand == null || selectedOperator == null || secondOperand == null) return;
+
+    final result = _compute(firstOperand!, selectedOperator!, secondOperand);
+    if (result == null) return;
+
+    setState(() {
+      displayText = _formatNumber(result);
+      firstOperand = result;
+      selectedOperator = null;
+      startNewNumber = true;
+    });
+  }
+
+  // =========================
+  // Part I: Arithmetic function
+  // =========================
+
+  /// Perform the requested arithmetic operation on two operands
+  double? _compute(double a, String op, double b) {
+    switch (op) {
+      case '+':
+        return a + b;
+      case '-':
+        return a - b;
+      case '*':
+        return a * b;
+      case '/':
+        if (b.abs() < 1e-12) return null; // Division by zero guard
+        return a / b;
+      default:
+        return null;
+    }
+  }
+
+  // =========================
+  // UI
+  // =========================
+  @override
+  Widget build(BuildContext context) {
+    // Fixed dark color scheme for Part I
+    const background = Color(0xFF0F172A);
+    const panel = Color(0xFF111827);
+    const displayBg = Color(0xFF0B1220);
+    const numberBtn = Color(0xFF1F2937);
+    const operatorBtn = Color(0xFF5B4BCE);
+    const textColor = Color(0xFFE5E7EB);
+    const displayColor = Color(0xFF34D399);
+
+    return Scaffold(
+      backgroundColor: background,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: panel,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [
+                    BoxShadow(
+                      blurRadius: 24,
+                      offset: Offset(0, 16),
+                      color: Colors.black38,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    const Row(
+                      children: [
+                        Text(
+                          'Calculator',
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Display area
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 22),
+                      decoration: BoxDecoration(
+                        color: displayBg,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            displayText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: displayColor,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Show pending operator as hint
+                          Text(
+                            selectedOperator != null
+                                ? 'Op: $selectedOperator'
+                                : '',
+                            maxLines: 1,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Button grid (4 columns)
+                    _Grid(
+                      gap: 12,
+                      children: [
+                        // Row 1: 7 8 9 /
+                        ...['7', '8', '9'].map(
+                          (d) => GridItem(
+                            child: CalcButton(
+                              label: d,
+                              bg: numberBtn,
+                              fg: textColor,
+                              onTap: () => pressDigit(d),
+                            ),
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '/',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: () => pressOperator('/'),
+                          ),
+                        ),
+
+                        // Row 2: 4 5 6 *
+                        ...['4', '5', '6'].map(
+                          (d) => GridItem(
+                            child: CalcButton(
+                              label: d,
+                              bg: numberBtn,
+                              fg: textColor,
+                              onTap: () => pressDigit(d),
+                            ),
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '*',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: () => pressOperator('*'),
+                          ),
+                        ),
+
+                        // Row 3: 1 2 3 -
+                        ...['1', '2', '3'].map(
+                          (d) => GridItem(
+                            child: CalcButton(
+                              label: d,
+                              bg: numberBtn,
+                              fg: textColor,
+                              onTap: () => pressDigit(d),
+                            ),
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '-',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: () => pressOperator('-'),
+                          ),
+                        ),
+
+                        // Row 4: 0 (span 2), . , +
+                        GridItem(
+                          span: 2,
+                          child: CalcButton(
+                            label: '0',
+                            bg: numberBtn,
+                            fg: textColor,
+                            onTap: () => pressDigit('0'),
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '.',
+                            bg: numberBtn,
+                            fg: textColor,
+                            onTap: pressDot,
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '+',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: () => pressOperator('+'),
+                          ),
+                        ),
+
+                        // Row 5: = (full width)
+                        GridItem(
+                          span: 4,
+                          child: CalcButton(
+                            label: '=',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: pressEquals,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A grid item that can span multiple columns
+class GridItem {
+  final Widget child;
+  final int span;
+  const GridItem({required this.child, this.span = 1});
+}
+
+/// Simple 4-column grid with span support for the 0 button
+class _Grid extends StatelessWidget {
+  final List<GridItem> children;
+  final double gap;
+  const _Grid({required this.children, this.gap = 12});
+
+  @override
+  Widget build(BuildContext context) {
+    const cols = 4;
+    final rows = <List<GridItem>>[];
+    var currentRow = <GridItem>[];
+    var used = 0;
+
+    for (final item in children) {
+      final span = item.span.clamp(1, cols);
+      if (used + span > cols) {
+        rows.add(currentRow);
+        currentRow = <GridItem>[];
+        used = 0;
+      }
+      currentRow.add(item);
+      used += span;
+      if (used == cols) {
+        rows.add(currentRow);
+        currentRow = <GridItem>[];
+        used = 0;
+      }
+    }
+    if (currentRow.isNotEmpty) rows.add(currentRow);
+
+    return Column(
+      children: rows.map((row) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: row == rows.last ? 0 : gap),
+          child: Row(
+            children: row.map((item) {
+              return Expanded(
+                flex: item.span,
+                child: Padding(
+                  padding:
+                      EdgeInsets.only(right: item == row.last ? 0 : gap),
+                  child: item.child,
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+/// Simple calculator button (StatelessWidget — no animation yet)
+class CalcButton extends StatelessWidget {
+  final String label;
+  final Color bg;
+  final Color fg;
+  final VoidCallback onTap;
+
+  const CalcButton({
+    super.key,
+    required this.label,
+    required this.bg,
+    required this.fg,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          height: 64,
+          alignment: Alignment.center,
           child: Text(
-            'Calculator App',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            label,
+            style: TextStyle(
+              color: fg,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
