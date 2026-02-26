@@ -4,6 +4,7 @@ void main() => runApp(const CalculatorApp());
 
 /// Part I: Core calculator
 /// Part II Feature #1: Theme Toggle (light / dark)
+/// Part II Feature #2: Clear / All Clear (C / AC)
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
 
@@ -35,6 +36,28 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void toggleTheme() {
     setState(() {
       isDarkMode = !isDarkMode;
+    });
+  }
+
+  // =========================
+  // Feature #2: C / AC
+  // =========================
+
+  /// Clear only the current entry; keep firstOperand and operator intact
+  void clearEntry() {
+    setState(() {
+      displayText = '0';
+      startNewNumber = true;
+    });
+  }
+
+  /// Reset the entire calculator back to its initial state
+  void allClear() {
+    setState(() {
+      displayText = '0';
+      firstOperand = null;
+      selectedOperator = null;
+      startNewNumber = true;
     });
   }
 
@@ -263,7 +286,27 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     _Grid(
                       gap: 12,
                       children: [
-                        // Row 1: 7 8 9 /
+                        // Row 1: C (span 2), AC (span 2)
+                        GridItem(
+                          span: 2,
+                          child: CalcButton(
+                            label: 'C',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: clearEntry,
+                          ),
+                        ),
+                        GridItem(
+                          span: 2,
+                          child: CalcButton(
+                            label: 'AC',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: allClear,
+                          ),
+                        ),
+
+                        // Row 2: 7 8 9 /
                         ...['7', '8', '9'].map(
                           (d) => GridItem(
                             child: CalcButton(
@@ -283,7 +326,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 2: 4 5 6 *
+                        // Row 3: 4 5 6 *
                         ...['4', '5', '6'].map(
                           (d) => GridItem(
                             child: CalcButton(
@@ -303,7 +346,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 3: 1 2 3 -
+                        // Row 4: 1 2 3 -
                         ...['1', '2', '3'].map(
                           (d) => GridItem(
                             child: CalcButton(
@@ -323,7 +366,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 4: 0 (span 2), . , +
+                        // Row 5: 0 (span 2), . , +
                         GridItem(
                           span: 2,
                           child: CalcButton(
@@ -350,7 +393,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 5: = (full width)
+                        // Row 6: = (full width)
                         GridItem(
                           span: 4,
                           child: CalcButton(
