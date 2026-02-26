@@ -6,6 +6,7 @@ void main() => runApp(const CalculatorApp());
 /// Part II Feature #1: Theme Toggle (light / dark)
 /// Part II Feature #2: Clear / All Clear (C / AC)
 /// Part II Feature #3: Error Handling (division by zero, incomplete input)
+/// Part II Feature #5: Percentage Operation
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
 
@@ -167,6 +168,26 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       selectedOperator = op;
       startNewNumber = true;
       errorMessage = null;
+    });
+  }
+
+  // =========================
+  // Feature #5: Percentage
+  // =========================
+
+  /// Divide the current display value by 100
+  void pressPercent() {
+    if (hasError) _clearErrorOnly();
+
+    final value = _parseDisplay();
+    if (value == null) {
+      _setError('Invalid number');
+      return;
+    }
+
+    setState(() {
+      displayText = _formatNumber(value / 100);
+      startNewNumber = true;
     });
   }
 
@@ -335,9 +356,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     _Grid(
                       gap: 12,
                       children: [
-                        // Row 1: C (span 2), AC (span 2)
+                        // Row 1: C, AC, %, /
                         GridItem(
-                          span: 2,
                           child: CalcButton(
                             label: 'C',
                             bg: operatorBtn,
@@ -346,7 +366,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
                         GridItem(
-                          span: 2,
                           child: CalcButton(
                             label: 'AC',
                             bg: operatorBtn,
@@ -354,16 +373,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             onTap: allClear,
                           ),
                         ),
-
-                        // Row 2: 7 8 9 /
-                        ...['7', '8', '9'].map(
-                          (d) => GridItem(
-                            child: CalcButton(
-                              label: d,
-                              bg: numberBtn,
-                              fg: textColor,
-                              onTap: () => pressDigit(d),
-                            ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '%',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: pressPercent,
                           ),
                         ),
                         GridItem(
@@ -375,8 +390,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 3: 4 5 6 *
-                        ...['4', '5', '6'].map(
+                        // Row 2: 7 8 9 *
+                        ...['7', '8', '9'].map(
                           (d) => GridItem(
                             child: CalcButton(
                               label: d,
@@ -395,8 +410,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 4: 1 2 3 -
-                        ...['1', '2', '3'].map(
+                        // Row 3: 4 5 6 -
+                        ...['4', '5', '6'].map(
                           (d) => GridItem(
                             child: CalcButton(
                               label: d,
@@ -415,7 +430,27 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
 
-                        // Row 5: 0 (span 2), . , +
+                        // Row 4: 1 2 3 +
+                        ...['1', '2', '3'].map(
+                          (d) => GridItem(
+                            child: CalcButton(
+                              label: d,
+                              bg: numberBtn,
+                              fg: textColor,
+                              onTap: () => pressDigit(d),
+                            ),
+                          ),
+                        ),
+                        GridItem(
+                          child: CalcButton(
+                            label: '+',
+                            bg: operatorBtn,
+                            fg: Colors.white,
+                            onTap: () => pressOperator('+'),
+                          ),
+                        ),
+
+                        // Row 5: 0 (span 2), . , =
                         GridItem(
                           span: 2,
                           child: CalcButton(
@@ -434,17 +469,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           ),
                         ),
                         GridItem(
-                          child: CalcButton(
-                            label: '+',
-                            bg: operatorBtn,
-                            fg: Colors.white,
-                            onTap: () => pressOperator('+'),
-                          ),
-                        ),
-
-                        // Row 6: = (full width)
-                        GridItem(
-                          span: 4,
                           child: CalcButton(
                             label: '=',
                             bg: operatorBtn,
