@@ -524,8 +524,9 @@ class _Grid extends StatelessWidget {
   }
 }
 
-/// Simple calculator button (StatelessWidget — no animation yet)
-class CalcButton extends StatelessWidget {
+/// Feature #4: Button Press Animations
+/// Scales down slightly on press (AnimatedScale) and shows an InkWell ripple.
+class CalcButton extends StatefulWidget {
   final String label;
   final Color bg;
   final Color fg;
@@ -540,22 +541,48 @@ class CalcButton extends StatelessWidget {
   });
 
   @override
+  State<CalcButton> createState() => _CalcButtonState();
+}
+
+class _CalcButtonState extends State<CalcButton> {
+  bool pressed = false;
+
+  void _setPressed(bool v) {
+    if (!mounted) return;
+    setState(() => pressed = v);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Container(
-          height: 64,
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: fg,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
+    // Scale to 96% while finger is down, spring back on release
+    final scale = pressed ? 0.96 : 1.0;
+
+    return GestureDetector(
+      onTapDown: (_) => _setPressed(true),
+      onTapCancel: () => _setPressed(false),
+      onTapUp: (_) => _setPressed(false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: scale,
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOut,
+        child: Material(
+          color: widget.bg,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: widget.onTap,
+            child: Container(
+              height: 64,
+              alignment: Alignment.center,
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.fg,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
