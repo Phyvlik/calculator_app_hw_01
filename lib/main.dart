@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 void main() => runApp(const CalculatorApp());
 
 /// Part I: Core calculator
-/// - Number buttons 0-9
-/// - Arithmetic operators: +, -, *, /
-/// - Display area showing current input and result
-/// - Two operands + one operator calculation
+/// Part II Feature #1: Theme Toggle (light / dark)
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
 
@@ -29,6 +26,18 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
+  // =========================
+  // Feature #1: Theme Toggle
+  // =========================
+  bool isDarkMode = true; // Start in dark mode
+
+  /// Toggle between light and dark color scheme
+  void toggleTheme() {
+    setState(() {
+      isDarkMode = !isDarkMode;
+    });
+  }
+
   // =========================
   // Calculator state
   // =========================
@@ -146,14 +155,21 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   // =========================
   @override
   Widget build(BuildContext context) {
-    // Fixed dark color scheme for Part I
-    const background = Color(0xFF0F172A);
-    const panel = Color(0xFF111827);
-    const displayBg = Color(0xFF0B1220);
-    const numberBtn = Color(0xFF1F2937);
-    const operatorBtn = Color(0xFF5B4BCE);
-    const textColor = Color(0xFFE5E7EB);
-    const displayColor = Color(0xFF34D399);
+    // Feature #1: Two color schemes — switch based on isDarkMode
+    final background =
+        isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+    final panel =
+        isDarkMode ? const Color(0xFF111827) : Colors.white;
+    final displayBg =
+        isDarkMode ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0);
+    final numberBtn =
+        isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB);
+    final operatorBtn =
+        isDarkMode ? const Color(0xFF5B4BCE) : const Color(0xFF2563EB);
+    final textColor =
+        isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF0F172A);
+    final displayColor =
+        isDarkMode ? const Color(0xFF34D399) : const Color(0xFF16A34A);
 
     return Scaffold(
       backgroundColor: background,
@@ -179,16 +195,26 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Header
-                    const Row(
+                    // Header row: title + theme toggle button (Feature #1)
+                    Row(
                       children: [
                         Text(
                           'Calculator',
                           style: TextStyle(
-                            color: textColor,
+                            color: textColor.withValues(alpha: 0.85),
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
+                        ),
+                        const Spacer(),
+                        // Sun/moon icon toggles the theme
+                        IconButton(
+                          onPressed: toggleTheme,
+                          icon: Icon(
+                            isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                          ),
+                          color: textColor.withValues(alpha: 0.85),
+                          tooltip: 'Toggle theme',
                         ),
                       ],
                     ),
@@ -210,7 +236,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             displayText,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w700,
                               color: displayColor,
@@ -218,15 +244,14 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // Show pending operator as hint
                           Text(
                             selectedOperator != null
                                 ? 'Op: $selectedOperator'
                                 : '',
                             maxLines: 1,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white54,
+                              color: textColor.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
