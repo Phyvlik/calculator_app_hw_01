@@ -5,6 +5,7 @@ void main() => runApp(const CalculatorApp());
 /// Part I: Core calculator
 /// Part II Feature #1: Theme Toggle (light / dark)
 /// Part II Feature #2: Clear / All Clear (C / AC)
+/// Part II Feature #3: Error Handling (division by zero, incomplete input)
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
 
@@ -40,12 +41,45 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   // =========================
+  // Calculator state
+  // =========================
+  String displayText = '0';    // Current value shown on screen
+  String? errorMessage;         // Non-null when calculator is in error state
+  double? firstOperand;         // Stored first number
+  String? selectedOperator;     // Pending operator: +, -, *, /
+  bool startNewNumber = true;   // Whether next digit starts a fresh number
+
+  // -------------------------
+  // Feature #3: Error helpers
+  // -------------------------
+
+  /// True when the calculator is displaying an error
+  bool get hasError => errorMessage != null;
+
+  /// Enter error state with a descriptive message
+  void _setError(String message) {
+    setState(() {
+      errorMessage = message;
+      displayText = 'Error';
+    });
+  }
+
+  /// Dismiss the current error so the user can continue typing
+  void _clearErrorOnly() {
+    setState(() {
+      errorMessage = null;
+      if (displayText == 'Error') displayText = '0';
+    });
+  }
+
+  // =========================
   // Feature #2: C / AC
   // =========================
 
   /// Clear only the current entry; keep firstOperand and operator intact
   void clearEntry() {
     setState(() {
+      errorMessage = null;
       displayText = '0';
       startNewNumber = true;
     });
@@ -55,19 +89,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void allClear() {
     setState(() {
       displayText = '0';
+      errorMessage = null;
       firstOperand = null;
       selectedOperator = null;
       startNewNumber = true;
     });
   }
-
-  // =========================
-  // Calculator state
-  // =========================
-  String displayText = '0';    // Current value shown on screen
-  double? firstOperand;         // Stored first number
-  String? selectedOperator;     // Pending operator: +, -, *, /
-  bool startNewNumber = true;   // Whether next digit starts a fresh number
 
   // -------------------------
   // Helpers
@@ -93,6 +120,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   /// Append a digit to the display
   void pressDigit(String digit) {
+    if (hasError) _clearErrorOnly(); // Feature #3: dismiss error on new input
     setState(() {
       if (startNewNumber || displayText == '0') {
         displayText = digit;
@@ -105,6 +133,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   /// Append a decimal point to the display
   void pressDot() {
+    if (hasError) _clearErrorOnly();
     setState(() {
       if (startNewNumber) {
         displayText = '0.';
@@ -117,29 +146,41 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   /// Store first operand and selected operator; compute chain if needed
   void pressOperator(String op) {
+    if (hasError) return; // Feature #3: block operators while in error state
+
     final currentNumber = _parseDisplay();
-    if (currentNumber == null) return;
+    if (currentNumber == null) {
+      _setError('Invalid number');
+      return;
+    }
 
     setState(() {
       // If an operation is already pending, compute intermediate result
       if (firstOperand != null && selectedOperator != null && !startNewNumber) {
         final result = _compute(firstOperand!, selectedOperator!, currentNumber);
-        if (result != null) {
-          firstOperand = result;
-          displayText = _formatNumber(result);
-        }
+        if (result == null) return;
+        firstOperand = result;
+        displayText = _formatNumber(result);
       } else {
         firstOperand = currentNumber;
       }
       selectedOperator = op;
       startNewNumber = true;
+      errorMessage = null;
     });
   }
 
   /// Evaluate the pending operation and show the result
   void pressEquals() {
+    if (hasError) return;
+
     final secondOperand = _parseDisplay();
-    if (firstOperand == null || selectedOperator == null || secondOperand == null) return;
+
+    // Feature #3: detect incomplete input before trying to compute
+    if (firstOperand == null || selectedOperator == null || secondOperand == null) {
+      _setError('Incomplete input');
+      return;
+    }
 
     final result = _compute(firstOperand!, selectedOperator!, secondOperand);
     if (result == null) return;
@@ -149,6 +190,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       firstOperand = result;
       selectedOperator = null;
       startNewNumber = true;
+      errorMessage = null;
     });
   }
 
@@ -166,9 +208,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       case '*':
         return a * b;
       case '/':
-        if (b.abs() < 1e-12) return null; // Division by zero guard
+        if (b.abs() < 1e-12) {
+          _setError('Cannot divide by 0'); // Feature #3: division by zero
+          return null;
+        }
         return a / b;
       default:
+        _setError('Unknown operator');
         return null;
     }
   }
@@ -193,6 +239,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         isDarkMode ? const Color(0xFFE5E7EB) : const Color(0xFF0F172A);
     final displayColor =
         isDarkMode ? const Color(0xFF34D399) : const Color(0xFF16A34A);
+    const displayErr = Color(0xFFF87171); // Red for error state
 
     return Scaffold(
       backgroundColor: background,
@@ -262,15 +309,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w700,
-                              color: displayColor,
+                              color: hasError ? displayErr : displayColor,
                               letterSpacing: 1.0,
                             ),
                           ),
                           const SizedBox(height: 8),
+                          // Show error message or pending operator as hint
                           Text(
-                            selectedOperator != null
-                                ? 'Op: $selectedOperator'
-                                : '',
+                            errorMessage ??
+                                (selectedOperator != null
+                                    ? 'Op: $selectedOperator'
+                                    : ''),
                             maxLines: 1,
                             style: TextStyle(
                               fontSize: 14,
